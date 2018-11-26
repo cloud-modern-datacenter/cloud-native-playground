@@ -1,3 +1,0 @@
-# aws-docker-ee
-
-TODO
