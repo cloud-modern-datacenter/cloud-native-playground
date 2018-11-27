@@ -118,15 +118,49 @@ Run a NGINX webserver:
 helm install --name mywebserver --namespace demo bitnami/nginx
 ```
 
-Get the external ip-address to see if NGINX is running and exposed using a load-balancer:
+Get the external ip-address to see if NGINX is running and exposed using a AWS Classic Load Balancer:
 
 ```bash
 kubectl get svc -n demo mywebserver-nginx
 ```
 
+## Ingress 
+
+Ingress is the built‑in Kubernetes load‑balancing framework for HTTP traffic. With Ingress, you control the routing of external traffic. When running on public clouds like AWS or GKE the load-balancing feature is available out of the box.
+
+**Why Ingress?**
+For each service with LoadBalancer type, AWS will create the new ELB (which comes with costs if you have a lot of services). With Kubernetes ingress you will need only one for one IP address. There are several Ingress controllers like NGINX/NGINX Plus, Traefik, Voyager (HAProxy) or Contour (Envoy) but also Amazon and Google offer Ingress implementations (AWS Aplication Load Balancer or Google Cloud Load Balancer)
+
+Ingress is the most useful if you want to expose multiple services under the same IP address, and these services all use the same L7 protocol (typically HTTP). You can get a lot of features out of the box (like SSL, Auth, Routing, etc) depending on the ingress implementation.
+
+Read more about Load Balancer and Ingress Controllers here:
+https://medium.com/google-cloud/kubernetes-nodeport-vs-loadbalancer-vs-ingress-when-should-i-use-what-922f010849e0
+
+We will use the Nginx ingress controller which is probably the most used at the moment.
+
+```bash
+helm install --name ingress --namespace ingress -f ingress/nginx-ingress-values.yml stable/nginx-ingress
+```
+
+If you check for your ingress pods you will see two services, controller, and the default backend:
+
+```bash
+kubectl get pod -n ingress --selector=app=nginx-ingress
+```
+
+Automatic DNS. Create a DNS A record (e.g. *.demo.kpn-cloudnative.com) for:
+
+```bash
+kubectl get svc ingress-nginx-ingress-controller -o jsonpath='{.status.loadBalancer.ingress[0].hostname}' -n ingress
+```
+
+It is also possible to synchronize Kubernetes Services and Ingresses with DNS Providers. See https://github.com/kubernetes-incubator/external-dns
+
 ## Prometheus and Grafana
 
-Create storage class for creating persistent volumes using EBS:
+For Prometheus installation use the official Helm chart [prometheus-operator](https://github.com/helm/charts/tree/master/stable/prometheus-operator). This chart has a lot of options, you can have  take a look at [default values](https://github.com/helm/charts/blob/master/stable/prometheus-operator/values.yaml) file and override some values if needed. This chart installs Grafana and exporters ready to monitor your cluster.
+
+First create storage class for creating persistent volumes using AWS EBS:
 
 ```bash
 kubectl create -f aws/prometheus-storageclass.yaml
@@ -135,31 +169,31 @@ kubectl create -f aws/prometheus-storageclass.yaml
 Install Prometheus:
 
 ```bash
-helm install -f monitoring/prometheus-values.yaml stable/prometheus --name prometheus --namespace prometheus
+helm install -f monitoring/prometheus-values.yaml stable/prometheus --name prometheus --namespace monitoring
 ```
 
 ```bash
-kubectl get pods --namespace prometheus
+kubectl get pods --namespace monitoring
 ```
 
-Get the Prometheus server URL:
+If you want to access Prometheus, Alertmanager or Grafana you can forward the port to localhost.
+
+Alert manager:
 
 ```bash
-export POD_NAME=$(kubectl get pods --namespace prometheus -l "app=prometheus,component=server" -o jsonpath="{.items[0].metadata.name}")
-kubectl --namespace prometheus port-forward $POD_NAME 9090
+kubectl port-forward -n monitoring alertmanager-prom-prometheus-operator-alertmanager-0 9093
 ```
 
-Install Grafana:
+Prometheus server:
 
 ```bash
-helm install -f monitoring/grafana-values.yaml stable/grafana --name prometheus --namespace grafana
+kubectl port-forward -n monitoring prometheus-prom-prometheus-operator-prometheus-0 9090
 ```
 
-Get the Grafana URL to visit:
+Grafana:
 
 ```bash
-export POD_NAME=$(kubectl get pods --namespace prometheus -l "app=grafana,component=" -o jsonpath="{.items[0].metadata.name}")
-kubectl --namespace prometheus port-forward $POD_NAME 3000
+kubectl port-forward -n monitoring prometheus-prom-prometheus-operator-grafana-0 3000
 ```
 
 There are several Kubernetes dashboards available on the Grafana Store. You can import those in Grafana. Feel free to try these out:
