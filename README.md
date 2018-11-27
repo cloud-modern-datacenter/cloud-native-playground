@@ -148,6 +148,46 @@ If you check for your ingress pods you will see two services, controller, and th
 kubectl get pod -n ingress --selector=app=nginx-ingress
 ```
 
+An example Ingress that makes use of the controller:
+
+```yaml
+  apiVersion: extensions/v1beta1
+  kind: Ingress
+  metadata:
+    annotations:
+      kubernetes.io/ingress.class: nginx
+    name: example
+    namespace: foo
+  spec:
+    rules:
+      - host: www.example.com
+        http:
+          paths:
+            - backend:
+                serviceName: exampleService
+                servicePort: 80
+              path: /
+    # This section is only required if TLS is to be enabled for the Ingress
+    tls:
+        - hosts:
+            - www.example.com
+          secretName: example-tls
+```
+
+If TLS is enabled for the Ingress, a Secret containing the certificate and key must also be provided:
+
+```yaml
+  apiVersion: v1
+  kind: Secret
+  metadata:
+    name: example-tls
+    namespace: foo
+  data:
+    tls.crt: <base64 encoded cert>
+    tls.key: <base64 encoded key>
+  type: kubernetes.io/tls
+```
+
 Automatic DNS. Create a DNS A record (e.g. *.demo.kpn-cloudnative.com) for:
 
 ```bash
@@ -169,12 +209,17 @@ kubectl create -f aws/prometheus-storageclass.yaml
 Install Prometheus:
 
 ```bash
-helm install -f monitoring/prometheus-values.yaml stable/prometheus --name prometheus --namespace monitoring
+helm install -f monitoring/prometheus-values.yaml stable/prometheus-operator --name prometheus --namespace monitoring
 ```
 
+The Prometheus Operator has been installed. Check its status by running:
+
 ```bash
-kubectl get pods --namespace monitoring
+kubectl --namespace monitoring get pods -l "release=prometheus"
 ```
+
+Visit https://coreos.com/operators/prometheus/docs/latest/ for instructions on how
+to create & configure Alertmanager and Prometheus instances using the Operator.
 
 If you want to access Prometheus, Alertmanager or Grafana you can forward the port to localhost.
 
@@ -187,23 +232,20 @@ kubectl port-forward -n monitoring alertmanager-prom-prometheus-operator-alertma
 Prometheus server:
 
 ```bash
-kubectl port-forward -n monitoring prometheus-prom-prometheus-operator-prometheus-0 9090
+kubectl port-forward -n monitoring prometheus-prometheus-prometheus-oper-prometheus-0 9090
 ```
 
 Grafana:
 
 ```bash
-kubectl port-forward -n monitoring prometheus-prom-prometheus-operator-grafana-0 3000
+kubectl port-forward -n monitoring prometheus-grafana-7f7458f55d-dtpx2 3000
 ```
 
-There are several Kubernetes dashboards available on the Grafana Store. You can import those in Grafana. Feel free to try these out:
-* https://grafana.com/dashboards/6417
-* https://grafana.com/dashboards/3131
-* https://grafana.com/dashboards/1471
-* https://grafana.com/dashboards/1621
+> NOTE: Replace `prometheus-grafana-7f7458f55d-dtpx2` with the correct pod name.
+
+The helm chart prometheus-operator will install a couple of very useful Grafana dashboards for monitoring your cluster, nodes, namespaces, pods, statefulsets, etc.
 
 ## Roadmap
 * Logging using Elasticsearch, Fluentd and Kibana
-* Ingress using NGINX or Amazon Load-Balancer (ALB)
 * Service Mesh using Consul or Istio
 * Secrets management using Vault
