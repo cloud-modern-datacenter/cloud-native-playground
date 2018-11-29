@@ -4,7 +4,7 @@ This playground contains a couple of getting started guides for running cloud na
 
 ## Launch Kubernetes
 
-With [Amazon Elastic Kubernetes Service]((https://aws.amazon.com/eks/)) (EKS), [Azure Kubernetes Service](https://azure.microsoft.com/en-us/services/kubernetes-service/) (AKS), [Google Kubernetes Engine](https://cloud.google.com/kubernetes-engine/) (GKE) you can run workloads on Kubernetes without operating the Kubernetes management infrastructure yourself.
+With [Amazon Elastic Kubernetes Service](https://aws.amazon.com/eks/) (EKS), [Azure Kubernetes Service](https://azure.microsoft.com/en-us/services/kubernetes-service/) (AKS), [Google Kubernetes Engine](https://cloud.google.com/kubernetes-engine/) (GKE) you can run workloads on Kubernetes without operating the Kubernetes management infrastructure yourself.
 
 In this playground we will make use of AWS EKS. In the future we may add other certified Kubernetes distributions such as AKS, GKE, Pivotal Kubernet Service (PKS) or Docker EE Enterpise.
 
